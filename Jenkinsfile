@@ -2,7 +2,7 @@ pipeline {
     agent any
     
     environment {
-        DOCKER_REGISTRY = 'your-dockerhub-username'
+        DOCKER_REGISTRY = 'yasasmi2003'
         HEROKU_APP_NAME = 'your-mindful-moments-app'
     }
     
@@ -19,21 +19,29 @@ pipeline {
         }
         
         // STAGE 2: TEST
-        stage('Test') {
-            steps {
-                echo '🧪 Running Tests...'
-                dir('./backend') {
+       stage('Test') {
+    steps {
+        echo '🧪 Running Tests...'
+        dir('./backend') {
+            script {
+                if (isUnix()) {
                     sh 'npm install'
                     sh 'npm test'
-                }
-            }
-            
-            post {
-                always {
-                    junit 'backend/test-results/*.xml'  // If you configure Jest to output JUnit format
+                } else {
+                    bat 'npm install'
+                    bat 'npm test'
                 }
             }
         }
+    }
+    post {
+        always {
+            // Only run if test results exist
+            junit allowEmptyResults: true, testResults: 'backend/test-results/*.xml'
+        }
+    }
+}
+
         
         // STAGE 3: CODE QUALITY
         stage('Code Quality') {
