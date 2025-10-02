@@ -19,7 +19,7 @@ pipeline {
         }
         
         // STAGE 2: TEST
-       stage('Test') {
+      stage('Test') {
     steps {
         echo '🧪 Running Tests...'
         dir('./backend') {
@@ -36,11 +36,12 @@ pipeline {
     }
     post {
         always {
-            // Only run if test results exist
-            junit allowEmptyResults: true, testResults: 'backend/test-results/*.xml'
+            junit 'backend/test-results/results.xml'
         }
     }
 }
+    }
+
 
         
         // STAGE 3: CODE QUALITY
