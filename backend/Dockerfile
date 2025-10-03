@@ -6,6 +6,7 @@ COPY package*.json ./
 
 # Install dependencies including devDependencies (Jest)
 RUN npm install
+RUN chmod -R 755 ./node_modules/.bin
 
 # Copy all source code including jest.config.js
 COPY . .
