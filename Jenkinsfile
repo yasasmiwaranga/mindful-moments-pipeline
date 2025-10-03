@@ -1,11 +1,11 @@
 pipeline {
     agent any
-
+    
     environment {
         DOCKER_REGISTRY = 'yasasmi2003'
         HEROKU_APP_NAME = 'your-mindful-moments-app'
     }
-
+    
     stages {
         // STAGE 1: BUILD
         stage('Build') {
@@ -17,26 +17,23 @@ pipeline {
                 }
             }
         }
-
+        
         // STAGE 2: TEST
-       stage('Test') {
-    steps {
-        echo '🧪 Running Tests inside Docker...'
-        dir('./backend') {
-            script {
-                // Use npx to avoid permission issues
-                sh "docker run --rm mindful-backend:${BUILD_ID} npx jest --ci --reporters=default --reporters=jest-junit"
+        stage('Test') {
+            steps {
+                echo '🧪 Running Tests inside Docker...'
+                script {
+                    // Run Jest tests inside the Docker image (no volume mount)
+                    sh "docker run --rm mindful-backend:${BUILD_ID} npx jest --ci --reporters=default --reporters=jest-junit"
+                }
+            }
+            post {
+                always {
+                    // Collect test results
+                    junit 'backend/test-results/results.xml'
+                }
             }
         }
-    }
-    post {
-        always {
-            // Archive JUnit test results
-            junit 'backend/test-results/results.xml'
-        }
-    }
-}
-
 
         // STAGE 3: CODE QUALITY
         stage('Code Quality') {
@@ -85,18 +82,18 @@ pipeline {
             steps {
                 echo '🎯 Releasing to Production...'
                 script {
-                    // Tag and push to Docker Hub
-                    sh "docker tag mindful-backend:${env.BUILD_ID} ${DOCKER_REGISTRY}/mindful-backend:latest"
+                    // Tag and push Docker images
+                    sh "docker tag mindful-backend:${BUILD_ID} ${DOCKER_REGISTRY}/mindful-backend:latest"
                     sh "docker push ${DOCKER_REGISTRY}/mindful-backend:latest"
-
+                    
                     // Deploy to Heroku
                     withCredentials([string(credentialsId: 'HEROKU_API_KEY', variable: 'HEROKU_API_KEY')]) {
-                        sh """
+                        sh '''
                         heroku container:login
                         docker tag mindful-backend:${BUILD_ID} registry.heroku.com/${HEROKU_APP_NAME}/web
                         docker push registry.heroku.com/${HEROKU_APP_NAME}/web
                         heroku container:release web --app ${HEROKU_APP_NAME}
-                        """
+                        '''
                     }
                 }
             }
@@ -125,7 +122,7 @@ pipeline {
     post {
         always {
             echo 'Pipeline execution completed.'
-            cleanWs()
+            cleanWs()  // Clean workspace
         }
         success {
             echo '✅ Pipeline succeeded!'
