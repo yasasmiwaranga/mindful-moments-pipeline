@@ -19,29 +19,24 @@ pipeline {
         }
 
         // STAGE 2: TEST
-        stage('Test') {
-            steps {
-                echo '🧪 Running Tests...'
-                dir('./backend') {
-                    script {
-                        // Ensure devDependencies are installed in the image
-                        sh "docker run --rm mindful-backend:${BUILD_ID} npm install"
-
-                        // Run tests inside the Docker container
-                        sh """
-                        docker run --rm -v ${PWD}:/app mindful-backend:${BUILD_ID} \
-                        npm test
-                        """
-                    }
-                }
-            }
-            post {
-                always {
-                    // Archive test results
-                    junit 'backend/test-results/results.xml'
-                }
+       stage('Test') {
+    steps {
+        echo '🧪 Running Tests inside Docker...'
+        dir('./backend') {
+            script {
+                // Use npx to avoid permission issues
+                sh "docker run --rm mindful-backend:${BUILD_ID} npx jest --ci --reporters=default --reporters=jest-junit"
             }
         }
+    }
+    post {
+        always {
+            // Archive JUnit test results
+            junit 'backend/test-results/results.xml'
+        }
+    }
+}
+
 
         // STAGE 3: CODE QUALITY
         stage('Code Quality') {
