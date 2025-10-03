@@ -1,6 +1,8 @@
 module.exports = {
   testEnvironment: "node",
-  testMatch: ["**/tests/**/*.test.js"], // adjust if your tests are elsewhere
-  reporters: ["default", "jest-junit"],
-  verbose: true
+  testMatch: ["**/__tests__/**/*.test.js"],
+  reporters: [
+    "default",
+    ["jest-junit", { outputDirectory: "./test-results", outputName: "results.xml" }]
+  ],
 };
