@@ -18,19 +18,14 @@ pipeline {
             }
         }
         
-        // STAGE 2: TEST
-      stage('Test') {
+       // STAGE 2: TEST
+stage('Test') {
     steps {
         echo '🧪 Running Tests...'
         dir('./backend') {
             script {
-                if (isUnix()) {
-                    sh 'npm install'
-                    sh 'npm test'
-                } else {
-                    bat 'npm install'
-                    bat 'npm test'
-                }
+                // Run tests inside Docker image
+                sh "docker run --rm mindful-backend:${BUILD_ID} npm test"
             }
         }
     }
@@ -40,22 +35,29 @@ pipeline {
         }
     }
 }
-    }
 
 
-        
+
+
         // STAGE 3: CODE QUALITY
         stage('Code Quality') {
             steps {
                 echo '📊 Running Code Quality Analysis...'
                 dir('./backend') {
-                    // Install SonarQube scanner if needed
-                    sh 'npm install -g sonarqube-scanner'
-                    sh 'sonar-scanner -Dsonar.projectKey=mindful-moments-backend'
+                    withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
+                        sh """
+                          npm install -g sonar-scanner
+                          sonar-scanner \
+                            -Dsonar.projectKey=mindful-moments-backend \
+                            -Dsonar.organization=yasasmiwaranga \
+                            -Dsonar.host.url=https://sonarcloud.io \
+                            -Dsonar.login=$SONAR_TOKEN
+                        """
+                    }
                 }
             }
         }
-        
+
         // STAGE 4: SECURITY
         stage('Security') {
             steps {
@@ -64,14 +66,13 @@ pipeline {
                     sh 'npm audit --audit-level high'
                 }
             }
-            
             post {
                 always {
                     echo 'Security scan completed. Check logs for details.'
                 }
             }
         }
-        
+
         // STAGE 5: DEPLOY TO TEST
         stage('Deploy to Test') {
             steps {
@@ -79,7 +80,7 @@ pipeline {
                 sh 'docker-compose -f docker-compose.test.yml up -d'
             }
         }
-        
+
         // STAGE 6: RELEASE TO PRODUCTION
         stage('Release to Production') {
             steps {
@@ -101,7 +102,7 @@ pipeline {
                 }
             }
         }
-        
+
         // STAGE 7: MONITORING
         stage('Monitoring') {
             steps {
@@ -121,7 +122,7 @@ pipeline {
             }
         }
     }
-    
+
     post {
         always {
             echo 'Pipeline execution completed.'
@@ -129,11 +130,9 @@ pipeline {
         }
         success {
             echo '✅ Pipeline succeeded!'
-            // Could add Slack notification here
         }
         failure {
             echo '❌ Pipeline failed!'
-            // Could add Slack notification here
         }
     }
 }
